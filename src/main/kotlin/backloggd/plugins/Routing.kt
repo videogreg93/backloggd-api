@@ -1,16 +1,14 @@
 package backloggd.plugins
 
-import backloggd.models.Profile
+import backloggd.converters.ProfileConverter
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.date.*
-import org.jsoup.Jsoup
 
 fun Application.configureRouting() {
     routing {
@@ -73,18 +71,10 @@ fun Application.configureRouting() {
                 )
             }
             if (response.status == HttpStatusCode.OK) {
-                val doc = Jsoup.parse(response.bodyAsText())
-                val totalGamesPlayed = doc.select("h4").first { it.text().contains("Total Games Played") }.previousElementSibling().text()
-                val gamesBackloggs = doc.select("h4").first { it.text().contains("Games Backloggd") }.previousElementSibling().text()
-                call.respond(
-                    Profile(
-                        user,
-                        totalGamesPlayed.toInt(),
-                        gamesBackloggs.toInt()
-                    )
-                )
+                val profile = ProfileConverter.toProfile(user, response)
+                call.respond(profile)
             } else {
-                call.respondText("Failed to find user $user")
+                call.response.status(HttpStatusCode.NotFound)
             }
         }
     }
