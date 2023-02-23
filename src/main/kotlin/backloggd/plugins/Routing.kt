@@ -5,7 +5,6 @@ import backloggd.models.UserSession
 import backloggd.models.api.request.AppLoginRequest
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.cookies.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -13,7 +12,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
-import io.ktor.util.date.*
 
 fun Application.configureRouting() {
     routing {
@@ -48,36 +46,15 @@ fun Application.configureRouting() {
             }
         }
         get("/profile/{id}") {
-            val session = call.sessions.get<UserSession>()
-            if (session == null) {
-                error("No Session")
-            }
+//            val session = call.sessions.get<UserSession>()
+//            if (session == null) {
+//                error("No Session")
+//            }
             val user = call.parameters["id"].orEmpty()
-            val response = client.request("https://backloggd.com/u/${user}") {
-                // Configure request parameters exposed by HttpRequestBuilder
-                method = HttpMethod.Get
-                headers {
-                    append(HttpHeaders.ContentType, "application/x-www-form-urlencoded")
-                    append(HttpHeaders.ContentLength, "215")
-                    append(HttpHeaders.AcceptEncoding, "gzip, deflate, br")
-                    append(HttpHeaders.Accept, "*/*")
-                    append(HttpHeaders.UserAgent, "PostmanRuntime/7.31.0")
-                }
-                cookie(
-                    name = "_august_app_session",
-                    value = "ZE0xNHQxeHZKbUY4YnRLZ2FiRkkrdWYyc1BIZ2dTZlpJWldhWG04KytOYUhQOFFtcVNqalRTTFhPaUcvTDZxZXE0RGtDOSt0V0R2ZHJDMVkrVk1pcDhtcTZlaGpZSS9RRDdYSGhKN1FzL1NoL3FQUi9nUlVkU1pZZU9HN0c2SFFCNXd6Y2liMUdDUnFkcXhWMzYvM21pSThLZkxINmtHa3VQV3pVK1JuZlRqdVlRRkRDK0pJUzhBMkZuUXNINm5vLS0rSUt0YXhBa3FWNER0c0VxWVdSY2tnPT0%3D--82aa38d0805f57b26cff33810ef6a1d2b84486ab",
-                    expires = GMTDate(
-                        seconds = 0,
-                        minutes = 0,
-                        hours = 10,
-                        dayOfMonth = 1,
-                        month = Month.APRIL,
-                        year = 2023
-                    )
-                )
-            }
-            if (response.status == HttpStatusCode.OK) {
-                val profile = ProfileConverter.toProfile(user, response)
+            val profileResponse = client.get("https://backloggd.com/u/${user}")
+            val gamesResponse = client.get("https://backloggd.com/u/${user}/games/")
+            if (profileResponse.status == HttpStatusCode.OK) {
+                val profile = ProfileConverter.toProfile(user, profileResponse, gamesResponse)
                 call.respond(profile)
             } else {
                 call.response.status(HttpStatusCode.NotFound)

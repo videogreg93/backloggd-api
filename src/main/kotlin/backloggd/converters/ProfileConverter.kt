@@ -1,6 +1,7 @@
 package backloggd.converters
 
 import backloggd.models.Profile
+import backloggd.models.SlimGame
 import io.ktor.client.statement.*
 import org.jsoup.Jsoup
 import java.util.Calendar
@@ -8,7 +9,7 @@ import java.util.Calendar.YEAR
 
 object ProfileConverter {
 
-    suspend fun toProfile(user: String, response: HttpResponse): Profile {
+    suspend fun toProfile(user: String, response: HttpResponse, gamesResponse: HttpResponse): Profile {
         val doc = Jsoup.parse(response.bodyAsText())
         val totalGamesPlayed =
             doc.select("h4").first { it.text().contains("Total Games Played") }.previousElementSibling().text()
@@ -21,7 +22,21 @@ object ProfileConverter {
             user,
             totalGamesPlayed.toInt(),
             gamesBackloggs.toInt(),
-            playedThisYear.toInt()
+            playedThisYear.toInt(),
+            getGames(gamesResponse)
         )
+    }
+
+    private suspend fun getGames(gamesResponse: HttpResponse): List<SlimGame> {
+        val doc = Jsoup.parse(gamesResponse.bodyAsText())
+        val games = doc.select(".cover-link").map {
+            val imageUrl = it
+                .siblingElements().select(".overflow-wrapper").first()
+                .children().select("img").first()
+                .attr("src")
+            val name = it.siblingElements().select(".game-text-centered").first().text()
+            SlimGame(name, imageUrl)
+        }
+        return games
     }
 }
