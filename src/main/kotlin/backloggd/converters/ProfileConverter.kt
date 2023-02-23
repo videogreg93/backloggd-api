@@ -4,7 +4,7 @@ import backloggd.models.Profile
 import backloggd.models.SlimGame
 import io.ktor.client.statement.*
 import org.jsoup.Jsoup
-import java.util.Calendar
+import java.util.*
 import java.util.Calendar.YEAR
 
 object ProfileConverter {
@@ -30,12 +30,13 @@ object ProfileConverter {
     private suspend fun getGames(gamesResponse: HttpResponse): List<SlimGame> {
         val doc = Jsoup.parse(gamesResponse.bodyAsText())
         val games = doc.select(".cover-link").map {
+            val id = it.parent().attr("game-id")
             val imageUrl = it
                 .siblingElements().select(".overflow-wrapper").first()
                 .children().select("img").first()
                 .attr("src")
             val name = it.siblingElements().select(".game-text-centered").first().text()
-            SlimGame(name, imageUrl)
+            SlimGame(id, name, imageUrl)
         }
         return games
     }
